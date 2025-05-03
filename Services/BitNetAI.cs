@@ -13,7 +13,7 @@ public class BitNetAI : IAIService
         return ValueTask.CompletedTask;
     }
 
-    public async Task<string> ProcessRequestAsync(AIBridgeRequest request, object requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
     {
         // Implement the logic to process the request using the ONNX model
         // This is a placeholder implementation and should be replaced with actual ONNX model processing logic

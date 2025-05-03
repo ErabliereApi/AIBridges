@@ -1,9 +1,13 @@
+using System.ComponentModel;
 using System.Text.Json;
+using AIBridges.Attributes;
 using AIBridges.Models;
 using Florence2;
 
 namespace AIBridges.Services;
 
+[Version("1.0")]
+[Description("Florence2 AI Service")]
 public class Florence2AI : IAIService
 {
     private Florence2Model? _florence2Model;
@@ -16,31 +20,39 @@ public class Florence2AI : IAIService
 
         var fmd = new FlorenceModelDownloader("./onnx_models/Florence2/");
 
-        await fmd.DownloadModelsAsync(Console.WriteLine);
+        await fmd.DownloadModelsAsync(status => Console.WriteLine($"Download status: {status.Progress} %"));
 
         _florence2Model = new Florence2Model(fmd);
     }
 
-    public async Task<string> ProcessRequestAsync(AIBridgeRequest request, object requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
     {
         if (_florence2Model == null)
         {
             throw new InvalidOperationException("Florence2 model is not initialized. Call InitializeAsync() first.");
         }
 
+        if (requestBody.Body == null)
+        {
+            throw new InvalidDataException("Request body content cannot be null.");
+        }
+
         List<TaskTypes> tasks = GetFlorence2TaskTypes(request);
 
         var results = new List<FlorenceResults>(15);
+
+        using var stream = new MemoryStream();
+
+        await requestBody.Body.CopyToAsync(stream);
 
         int i = 1;
         foreach (var task in tasks)
         {
             Console.WriteLine($"Task {i++}: {task}");
 
-            using var stream = new MemoryStream(requestBody as byte[] ?? throw new InvalidDataException("Request body is not a byte array."));
+            stream.Position = 0; // Reset the stream position for each task
 
-            var singleResults = await Task.Run(() => 
-                _florence2Model.Run(task, [stream], textInput: "", CancellationToken.None));
+            var singleResults = await Task.Run(() => _florence2Model.Run(task, [stream], textInput: "", CancellationToken.None));
 
             if (singleResults == null || singleResults.Length == 0)
             {
@@ -52,18 +64,16 @@ public class Florence2AI : IAIService
             }
         }
 
-        var jsonResult = JsonSerializer.Serialize(results);
-
-        return jsonResult;
+        return results;
     }
 
-    public static List<TaskTypes> GetFlorence2TaskTypes(AIBridgeRequest model)
+    public static List<TaskTypes> GetFlorence2TaskTypes(AIBridgeRequest request)
     {
         var tasks = new List<TaskTypes>();
 
         try
         {
-            var configTypes = model.Task?.Split(',');
+            var configTypes = request.Task?.Split(',');
 
             if (configTypes != null)
             {

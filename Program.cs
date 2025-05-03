@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using AIBridges.Attributes;
 using AIBridges.Data;
 using AIBridges.Models;
 using AIBridges.Services;
@@ -40,32 +41,39 @@ app.MapGet("/", () => "AIBridges services is running!");
 
 app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, string version, string actionName, HttpRequest request) =>
 {
-    var factory = request.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-    var client = factory.CreateClient("AIBridgesClient");
-    var model = request.HttpContext.RequestServices.GetRequiredService<AIBridgesDbContext>().Models
-        .FirstOrDefault(m => m.Name == modelName && m.Versions.Contains(version) && m.ActionNames.Contains(actionName));
-    if (model == null)
+    var db = request.HttpContext.RequestServices.GetRequiredService<AIBridgesDbContext>();
+    
+    var models = await db.Models.Where(m => m.Name == modelName).ToListAsync();
+    if (models.Count == 0)
     {
-        return Results.NotFound(ModelNotFoundMessage);
+        return Results.NotFound($"Model '{modelName}' not found.");
     }
-    var endpoint = model.Endpoint;
-    var key = model.Key;
-    var requestBody = await new StreamReader(request.Body).ReadToEndAsync();
-    var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, endpoint)
+
+    models = models.Where(m => m.Versions.Contains(version)).ToList();
+    if (models.Count == 0)
     {
-        Content = new StringContent(requestBody, Encoding.UTF8, "application/json")
-    };
-    httpRequestMessage.Headers.Add("Authorization", $"Bearer {key}");
-    var response = await client.SendAsync(httpRequestMessage);
-    if (response.IsSuccessStatusCode)
-    {
-        var responseBody = await response.Content.ReadAsStringAsync();
-        return Results.Ok(responseBody);
+        return Results.NotFound($"Model '{modelName}' with version '{version}' not found.");
     }
-    else
+
+    var model = models[0];
+
+    var type = Assembly.GetExecutingAssembly().GetTypes()
+        .FirstOrDefault(t => t.Name == model.Type && t.GetInterfaces().Contains(typeof(IAIService)));
+
+    var aiService = request.HttpContext.RequestServices.GetService(type) as IAIService;
+    if (aiService == null)
     {
-        return Results.Problem(await response.Content.ReadAsStringAsync(), statusCode: (int)response.StatusCode);
+        return Results.NotFound($"Model '{modelName}' with version '{version}' not found.");
     }
+
+    await aiService.InitializeAsync();
+
+    var response = await aiService.ProcessRequestAsync(new AIBridgeRequest
+    {
+        Task = actionName,
+    }, request);
+
+    return Results.Ok(response);
 });
 
 app.MapGet("/api/config/models", (AIBridgesDbContext context) =>
@@ -175,7 +183,7 @@ using (var scope = app.Services.CreateScope())
             {
                 Name = model.GetType().Name,
                 Description = model.GetType().GetCustomAttribute<DescriptionAttribute>()?.Description ?? "",
-                Versions = "",
+                Versions = model.GetType().GetCustomAttribute<VersionAttribute>()?.Version ?? "1.0",
                 ActionNames = "",
                 Type = model.GetType().Name,
                 Endpoint = "",
@@ -184,6 +192,11 @@ using (var scope = app.Services.CreateScope())
 
             // Add the new model to the database
             dbContext.Models.Add(modelEntity);
+        }
+        else 
+        {
+            existingModel.Description = model.GetType().GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
+            existingModel.Versions = model.GetType().GetCustomAttribute<VersionAttribute>()?.Version ?? "";
         }
     }
 

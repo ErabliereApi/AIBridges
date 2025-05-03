@@ -12,7 +12,7 @@ public class AzureVisionV2 : IAIService
         return ValueTask.CompletedTask;
     }
 
-    public async Task<string> ProcessRequestAsync(AIBridgeRequest request, object requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
     {
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", request.Key);
