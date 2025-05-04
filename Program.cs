@@ -12,7 +12,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add EF Core services to the container.
 builder.Services.AddDbContext<AIBridgesDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (string.Equals(bool.TrueString, builder.Configuration["USE_SQL"]?.Trim(), StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+    else 
+    {
+        options.UseInMemoryDatabase("AIBridges");
+    }
+});
 
 // Add and http factory service to the container.
 builder.Services.AddHttpClient("AIBridgesClient", client =>
@@ -42,7 +51,7 @@ app.MapGet("/", () => "AIBridges services is running!");
 app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, string version, string actionName, HttpRequest request) =>
 {
     var db = request.HttpContext.RequestServices.GetRequiredService<AIBridgesDbContext>();
-    
+
     var models = await db.Models.Where(m => m.Name == modelName).ToListAsync();
     if (models.Count == 0)
     {
@@ -165,7 +174,11 @@ app.MapDelete(ModelByIdRoute, async (AIBridgesDbContext context, Guid id) =>
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AIBridgesDbContext>();
-    await dbContext.Database.MigrateAsync();
+
+    if (dbContext.Database.IsSqlServer()) 
+    {
+        await dbContext.Database.MigrateAsync();
+    }
 
     var supportedModels = Assembly.GetAssembly(typeof(IAIService)).GetTypes()
         .Where(t => t.IsClass && t.GetInterfaces().Contains(typeof(IAIService)))
@@ -193,7 +206,7 @@ using (var scope = app.Services.CreateScope())
             // Add the new model to the database
             dbContext.Models.Add(modelEntity);
         }
-        else 
+        else
         {
             existingModel.Description = model.GetType().GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
             existingModel.Versions = model.GetType().GetCustomAttribute<VersionAttribute>()?.Version ?? "";
