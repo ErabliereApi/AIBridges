@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using AIBridges.Attributes;
 using AIBridges.Data;
@@ -68,6 +67,11 @@ app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, 
 
     var type = Assembly.GetExecutingAssembly().GetTypes()
         .FirstOrDefault(t => t.Name == model.Type && t.GetInterfaces().Contains(typeof(IAIService)));
+
+    if (type == null)
+    {
+        throw new InvalidProgramException($"Executed type instance for {model.Type} not found. Review the code of the application.");
+    }
 
     var aiService = request.HttpContext.RequestServices.GetService(type) as IAIService;
     if (aiService == null)

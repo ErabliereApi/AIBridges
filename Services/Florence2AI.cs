@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 using AIBridges.Attributes;
 using AIBridges.Models;
 using Florence2;
@@ -11,6 +10,7 @@ namespace AIBridges.Services;
 public class Florence2AI : IAIService
 {
     private Florence2Model? _florence2Model;
+
     public async ValueTask InitializeAsync()
     {
         if (_florence2Model != null)
@@ -20,7 +20,7 @@ public class Florence2AI : IAIService
 
         var fmd = new FlorenceModelDownloader("./onnx_models/Florence2/");
 
-        await fmd.DownloadModelsAsync(status => Console.WriteLine($"Download status: {status.Progress} %"));
+        await fmd.DownloadModelsAsync(status => Console.WriteLine($"Download status: {status.Progress * 100} %"));
 
         _florence2Model = new Florence2Model(fmd);
     }
