@@ -1,10 +1,13 @@
+using System.ComponentModel;
 using System.Text;
 using System.Text.Json;
+using AIBridges.Attributes;
 using AIBridges.Models;
-using AIBridges.Services;
 
 namespace AIBridges.Services;
 
+[Version("2.0")]
+[Description("Azure OpenAI Service")]
 public class AzureOpenAI : IAIService
 {
     public ValueTask InitializeAsync()
@@ -18,7 +21,9 @@ public class AzureOpenAI : IAIService
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {request.Key}");
 
-        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+        var bodyString = await requestBody.ReadFromJsonAsync<object>();
+
+        var content = new StringContent(JsonSerializer.Serialize(bodyString), Encoding.UTF8, "application/json");
         var response = await httpClient.PostAsync($"{request.Endpoint}/openai/deployments/{request.Model}/completions?api-version=2023-05-15", content);
 
         if (!response.IsSuccessStatusCode)
