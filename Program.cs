@@ -45,7 +45,22 @@ const string ModelByIdRoute = "/api/config/models/{id}";
 // Define constants for repeated error messages
 const string ModelNotFoundMessage = "Model not found.";
 
-app.MapGet("/", () => "AIBridges services is running!");
+const string AIBridgesServiceHelp = @"AIBridges Service is running! 
+
+You can use the following endpoints:
+- GET /api/config/models: Get all AI models.
+- GET /api/config/models/{id}: Get AI model by ID.
+- POST /api/config/models: Create a new AI model.
+- PUT /api/config/models/{id}: Update an existing AI model.
+- PATCH /api/config/models/{id}: Partially update an existing AI model.
+- DELETE /api/config/models/{id}: Delete an AI model.
+- POST /api/{modelName}/{version}/{actionName}: Execute an AI model action.
+
+For more information, visit https://github.com/ErabliereApi/AIBridges
+
+";
+
+app.MapGet("/", () => AIBridgesServiceHelp);
 
 app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, string version, string actionName, HttpRequest request) =>
 {
