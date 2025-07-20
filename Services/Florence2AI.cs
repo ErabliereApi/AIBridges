@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using AIBridges.Attributes;
 using AIBridges.Models;
 using Florence2;
@@ -37,6 +38,8 @@ public class Florence2AI : IAIService
             throw new InvalidDataException("Request body content cannot be null.");
         }
 
+        var chrono = Stopwatch.StartNew();
+
         List<TaskTypes> tasks = GetFlorence2TaskTypes(request);
 
         var results = new List<FlorenceResults>(15);
@@ -63,6 +66,9 @@ public class Florence2AI : IAIService
                 results.AddRange(singleResults);
             }
         }
+
+        chrono.Stop();
+        Console.WriteLine($"{DateTimeOffset.UtcNow} Florence2AI processing completed in {chrono.ElapsedMilliseconds} ms");
 
         return results;
     }
