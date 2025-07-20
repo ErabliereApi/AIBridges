@@ -48,7 +48,7 @@ public class Florence2AI : IAIService
         int i = 1;
         foreach (var task in tasks)
         {
-            Console.WriteLine($"Task {i++}: {task}");
+            Console.WriteLine($"{DateTimeOffset.UtcNow} Task {i++}: {task}");
 
             stream.Position = 0; // Reset the stream position for each task
 
@@ -56,7 +56,7 @@ public class Florence2AI : IAIService
 
             if (singleResults == null || singleResults.Length == 0)
             {
-                Console.WriteLine($"No results produce for TaskTypes: {task}");
+                Console.WriteLine($"{DateTimeOffset.UtcNow} No results produce for TaskTypes: {task}");
             }
             else
             {

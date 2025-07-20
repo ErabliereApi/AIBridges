@@ -184,12 +184,12 @@ using (var scope = app.Services.CreateScope())
         await dbContext.Database.MigrateAsync();
     }
 
-    var supportedModels = Assembly.GetAssembly(typeof(IAIService)).GetTypes()
+    var supportedModels = Assembly.GetAssembly(typeof(IAIService))?.GetTypes()
         .Where(t => t.IsClass && t.GetInterfaces().Contains(typeof(IAIService)))
         .Select(t => scope.ServiceProvider.GetRequiredService(t))
         .ToList();
 
-    foreach (var model in supportedModels)
+    foreach (var model in supportedModels ?? throw new InvalidOperationException("No AI models found. Ensure that AI model classes implement IAIService and are registered in the DI container."))
     {
         // Check if the model already exists in the database
         var existingModel = await dbContext.Models.FirstOrDefaultAsync(m => m.Name == model.GetType().Name);
