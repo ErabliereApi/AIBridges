@@ -6,26 +6,26 @@ namespace AIBridges.Services;
 
 public class AzureVisionV1 : IAIService
 {
-    public ValueTask InitializeAsync()
+    public ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
         // Initialization logic if needed
         return ValueTask.CompletedTask;
     }
 
-    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", request.Key);
 
         var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var response = await httpClient.PostAsync($"{request.Endpoint}/vision/v1.0/models/{request.Model}/analyze?api-version=2023-05-15", content);
+        var response = await httpClient.PostAsync($"{request.Endpoint}/vision/v1.0/models/{request.Model}/analyze?api-version=2023-05-15", content, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Error calling Azure Vision: {response.ReasonPhrase}");
         }
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         return responseBody;
     }
 }

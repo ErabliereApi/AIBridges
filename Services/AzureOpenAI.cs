@@ -10,13 +10,13 @@ namespace AIBridges.Services;
 [Description("Azure OpenAI Service")]
 public class AzureOpenAI : IAIService
 {
-    public ValueTask InitializeAsync()
+    public ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
         // Initialization logic if needed
         return ValueTask.CompletedTask;
     }
 
-    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {request.Key}");
@@ -24,14 +24,14 @@ public class AzureOpenAI : IAIService
         var bodyString = await requestBody.ReadFromJsonAsync<object>();
 
         var content = new StringContent(JsonSerializer.Serialize(bodyString), Encoding.UTF8, "application/json");
-        var response = await httpClient.PostAsync($"{request.Endpoint}/openai/deployments/{request.Model}/completions?api-version=2023-05-15", content);
+        var response = await httpClient.PostAsync($"{request.Endpoint}/openai/deployments/{request.Model}/completions?api-version=2023-05-15", content, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Error calling Azure OpenAI: {response.ReasonPhrase}");
         }
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         return responseBody;
     }
 }

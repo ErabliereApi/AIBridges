@@ -1,0 +1,288 @@
+{
+	"info": {
+		"_postman_id": "ab6637ec-5b96-4e20-85eb-7eecf7e11d5a",
+		"name": "AIBridges",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "6202256",
+		"_collection_link": "https://www.postman.com/erabliereapi/erabliereapi/collection/uti5nz7/aibridges?action=share&source=collection_link&creator=6202256"
+	},
+	"item": [
+		{
+			"name": "Florence2",
+			"item": [
+				{
+					"name": "Post to florence2",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "p3rqVCLb1/2025.dir00000.file00000000.2153.jpg"
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5176/api/Florence2AI/1.0/MORE_DETAILED_CAPTION,OCR_WITH_REGION",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5176",
+							"path": [
+								"api",
+								"Florence2AI",
+								"1.0",
+								"MORE_DETAILED_CAPTION,OCR_WITH_REGION"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AzureOpenAI",
+			"item": [
+				{
+					"name": "Configuration",
+					"item": [
+						{
+							"name": "Get cofigured models",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const response = pm.response.json();\r",
+											"\r",
+											"pm.test(\"Find item with name AzureOpenAI\", () => {\r",
+											"    const azureOpenAIItem = response.find(item => item.name === \"AzureOpenAI\");\r",
+											"    console.log(azureOpenAIItem);\r",
+											"    pm.collectionVariables.set(\"azureOpenAiId\", azureOpenAIItem.id);\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:5176/api/config/models",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "5176",
+									"path": [
+										"api",
+										"config",
+										"models"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Set your endpoint",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"endpoint\": \"{{your-azure-open-ai-endpoint}}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:5176/api/config/models/{{azureOpenAiId}}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "5176",
+									"path": [
+										"api",
+										"config",
+										"models",
+										"{{azureOpenAiId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Chat to Azure OpenAI",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5176/api/AzureOpenAI/2.0/chat",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5176",
+							"path": [
+								"api",
+								"AzureOpenAI",
+								"2.0",
+								"chat"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Service running",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.sendRequest({\r",
+							"    url: 'http://localhost:5176',\r",
+							"    method: 'GET'\r",
+							"}, function (err, res) {\r",
+							"    if (err) {\r",
+							"        console.error(err);\r",
+							"        return;\r",
+							"    }\r",
+							"    pm.expect(res).to.have.status(200);\r",
+							"    pm.expect(res.text()).to.include('AIBridges services is running!');\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5176",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5176"
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get configured models",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.sendRequest({\r",
+							"    url: 'http://localhost:5176',\r",
+							"    method: 'GET'\r",
+							"}, function (err, res) {\r",
+							"    if (err) {\r",
+							"        console.error(err);\r",
+							"        return;\r",
+							"    }\r",
+							"    pm.expect(res).to.have.status(200);\r",
+							"    pm.expect(res.text()).to.include('AIBridges services is running!');\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5176/api/config/models",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5176",
+					"path": [
+						"api",
+						"config",
+						"models"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post to unknow model",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5176/api/unknowmodel/v1/someAction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5176",
+					"path": [
+						"api",
+						"unknowmodel",
+						"v1",
+						"someAction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post to unknow model version",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5176/api/Florence2AI/sdfg/someAction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5176",
+					"path": [
+						"api",
+						"Florence2AI",
+						"sdfg",
+						"someAction"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "azureOpenAiId",
+			"value": ""
+		}
+	]
+}

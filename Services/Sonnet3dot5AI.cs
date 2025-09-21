@@ -6,26 +6,26 @@ namespace AIBridges.Services;
 
 public class Sonet3Dot5AI : IAIService
 {
-    public ValueTask InitializeAsync()
+    public ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
         // Initialization logic if needed
         return ValueTask.CompletedTask;
     }
 
-    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {request.Key}");
 
         var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-        var response = await httpClient.PostAsync($"{request.Endpoint}/openai/deployments/{request.Model}/completions?api-version=2023-05-15", content);
+        var response = await httpClient.PostAsync($"{request.Endpoint}/openai/deployments/{request.Model}/completions?api-version=2023-05-15", content, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Error calling Sonet 3.5 AI: {response.ReasonPhrase}");
         }
 
-        var responseBody = await response.Content.ReadAsStringAsync();
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         return responseBody;
     }
 }

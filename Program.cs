@@ -7,6 +7,13 @@ using AIBridges.Models;
 using AIBridges.Services;
 using Microsoft.EntityFrameworkCore;
 
+Console.WriteLine("Starting AIBridges Service...");
+var versionInfos = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0";
+var version = versionInfos.Split('+');
+Console.WriteLine($"AIBridges Service Version: {version[0]}");
+Console.WriteLine("Build details: " + (version.Length > 1 ? version[1] : "N/A"));
+Console.WriteLine("AIBridges Service is starting... " + DateTimeOffset.Now);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add EF Core services to the container.
@@ -62,11 +69,11 @@ For more information, visit https://github.com/ErabliereApi/AIBridges
 
 app.MapGet("/", () => AIBridgesServiceHelp);
 
-app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, string version, string actionName, HttpRequest request) =>
+app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, string version, string actionName, HttpRequest request, CancellationToken cancellationToken) =>
 {
     var db = request.HttpContext.RequestServices.GetRequiredService<AIBridgesDbContext>();
 
-    var models = await db.Models.Where(m => m.Name == modelName).ToListAsync();
+    var models = await db.Models.Where(m => m.Name == modelName).ToListAsync(cancellationToken);
     if (models.Count == 0)
     {
         return Results.NotFound($"Model '{modelName}' not found.");
@@ -94,12 +101,12 @@ app.MapPost("/api/{modelName}/{version}/{actionName}", async (string modelName, 
         return Results.NotFound($"Model '{modelName}' with version '{version}' not found.");
     }
 
-    await aiService.InitializeAsync();
+    await aiService.InitializeAsync(cancellationToken);
 
     var response = await aiService.ProcessRequestAsync(new AIBridgeRequest
     {
         Task = actionName,
-    }, request);
+    }, request, cancellationToken);
 
     return Results.Ok(response);
 });
@@ -154,17 +161,20 @@ app.MapPut(ModelByIdRoute, async (AIBridgesDbContext context, Guid id, HttpReque
     return Results.Ok(model);
 });
 
-app.MapPatch(ModelByIdRoute, async (AIBridgesDbContext context, Guid id, HttpRequest request) =>
+app.MapPatch(ModelByIdRoute, async (AIBridgesDbContext context, Guid id, HttpRequest request, CancellationToken cancellationToken) =>
 {
-    var model = await context.Models.FindAsync(id);
+    var model = await context.Models.FindAsync([id], cancellationToken);
     if (model == null)
     {
         return Results.NotFound(ModelNotFoundMessage);
     }
-    var updatedModel = await JsonSerializer.DeserializeAsync<AIModel>(request.Body);
+    var updatedModel = await JsonSerializer.DeserializeAsync<PatchAIModel>(request.Body, new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    }, cancellationToken: cancellationToken);
     if (updatedModel == null)
     {
-        return Results.BadRequest("Invalid model data.");
+        return Results.BadRequest("Invalid patch data.");
     }
     model.Name = updatedModel.Name ?? model.Name;
     model.Description = updatedModel.Description ?? model.Description;
@@ -173,7 +183,7 @@ app.MapPatch(ModelByIdRoute, async (AIBridgesDbContext context, Guid id, HttpReq
     model.Type = updatedModel.Type ?? model.Type;
     model.Endpoint = updatedModel.Endpoint ?? model.Endpoint;
     model.Key = updatedModel.Key ?? model.Key;
-    await context.SaveChangesAsync();
+    await context.SaveChangesAsync(cancellationToken);
     return Results.Ok(model);
 });
 

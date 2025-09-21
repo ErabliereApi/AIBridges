@@ -11,8 +11,14 @@ namespace AIBridges.Services;
 public class Florence2AI : IAIService
 {
     private Florence2Model? _florence2Model;
+    private readonly ILogger<Florence2AI> _logger;
 
-    public async ValueTask InitializeAsync()
+    public Florence2AI(ILogger<Florence2AI> logger)
+    {
+        _logger = logger;
+    }
+
+    public async ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
         if (_florence2Model != null)
         {
@@ -21,12 +27,12 @@ public class Florence2AI : IAIService
 
         var fmd = new FlorenceModelDownloader("./onnx_models/Florence2/");
 
-        await fmd.DownloadModelsAsync(status => Console.WriteLine($"Download status: {status.Progress * 100} %"));
+        await fmd.DownloadModelsAsync(status => Console.WriteLine($"Download status: {status.Progress * 100} %"), _logger, CancellationToken.None);
 
         _florence2Model = new Florence2Model(fmd);
     }
 
-    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody)
+    public async Task<object> ProcessRequestAsync(AIBridgeRequest request, HttpRequest requestBody, CancellationToken cancellationToken)
     {
         if (_florence2Model == null)
         {
@@ -46,20 +52,20 @@ public class Florence2AI : IAIService
 
         using var stream = new MemoryStream();
 
-        await requestBody.Body.CopyToAsync(stream);
+        await requestBody.Body.CopyToAsync(stream, cancellationToken);
 
         int i = 1;
         foreach (var task in tasks)
         {
-            Console.WriteLine($"{DateTimeOffset.UtcNow} Task {i++}: {task}");
+            _logger.LogInformation("Task {TaskId}: {TaskType}", i++, task);
 
             stream.Position = 0; // Reset the stream position for each task
 
-            var singleResults = await Task.Run(() => _florence2Model.Run(task, [stream], textInput: "", CancellationToken.None));
+            var singleResults = await Task.Run(() => _florence2Model.Run(task, [stream], textInput: "", cancellationToken), cancellationToken);
 
             if (singleResults == null || singleResults.Length == 0)
             {
-                Console.WriteLine($"{DateTimeOffset.UtcNow} No results produce for TaskTypes: {task}");
+                _logger.LogInformation("No results produce for TaskTypes: {TaskType}", task);
             }
             else
             {
@@ -68,12 +74,12 @@ public class Florence2AI : IAIService
         }
 
         chrono.Stop();
-        Console.WriteLine($"{DateTimeOffset.UtcNow} Florence2AI processing completed in {chrono.ElapsedMilliseconds} ms");
+        _logger.LogInformation("Florence2AI processing completed in {ElapsedMilliseconds} ms", chrono.ElapsedMilliseconds);
 
         return results;
     }
 
-    public static List<TaskTypes> GetFlorence2TaskTypes(AIBridgeRequest request)
+    private List<TaskTypes> GetFlorence2TaskTypes(AIBridgeRequest request)
     {
         var tasks = new List<TaskTypes>();
 
@@ -98,7 +104,7 @@ public class Florence2AI : IAIService
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Error parsing TaskTypes from request. Defaulting to all TaskTypes.");
             tasks.AddRange(Enum.GetValues<TaskTypes>());
         }
 
