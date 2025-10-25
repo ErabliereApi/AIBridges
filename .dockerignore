@@ -2,3 +2,4 @@ bin/
 obj/
 onnx_models/
 Readme.md
+.vs/

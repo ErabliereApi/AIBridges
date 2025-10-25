@@ -15,6 +15,12 @@ To run the API with Docker on Windows, it is recommended to mount a volumes to t
 docker run -d -p 5234:8080 --mount type=bind,source=C:\VolumesDocker\AIBridges,target=/app/onnx_models erabliereapi/aibridges
 ```
 
+### Run the API with Docker on Linux
+
+```bash
+sudo docker run -d -p 5234:8080 --mount type=bind,source=/var/opt/docker/volumes,target=/app/onnx_models erabliereapi/aibridges
+```
+
 ## Postman Collection
 
 [Postman Collection - ErabliereAPI Workspace](https://www.postman.com/erabliereapi/erabliereapi/collection/uti5nz7/aibridges?action=share&creator=6202256)
