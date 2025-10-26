@@ -18,7 +18,11 @@ docker run -d -p 5234:8080 --mount type=bind,source=C:\VolumesDocker\AIBridges,t
 ### Run the API with Docker on Linux
 
 ```bash
-sudo docker run -d -p 5234:8080 --mount type=bind,source=/var/opt/docker/volumes,target=/app/onnx_models erabliereapi/aibridges
+sudo docker run -d \
+  --restart always \
+  -p 5234:8080 \
+  --mount type=bind,source=/var/opt/docker/volumes,target=/app/onnx_models \
+  erabliereapi/aibridges
 ```
 
 ## Postman Collection
